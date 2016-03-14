@@ -74,26 +74,26 @@ github.repos.getFromOrg({
         responses = _.compact(responses);
         //get a list of tuples for repo name and it's set of dependencies
         var repoPackageTuples = _.map(responses, function(response) {
-          return [
-            response.repoName,
-            JSON.parse(new Buffer(response.content, 'base64').toString('utf-8')).dependencies
-          ];
+          return {
+            name: response.repoName,
+            deps: JSON.parse(new Buffer(response.content, 'base64').toString('utf-8')).dependencies
+          };
         });
 
         //we have a list of all the different repos and their associated versions
         //let's make this readable.
         var packageToVersionToRepos = {};
         _.forEach(repoPackageTuples, function(tuple) {
-          _.forEach(_.keys(tuple[1]), function(pack) {
-            var version = tuple[1][pack];
+          _.forEach(_.keys(tuple.deps), function(pack) {
+            var version = tuple.deps[pack];
             if (pack in packageToVersionToRepos && version in packageToVersionToRepos[pack]) {
-              packageToVersionToRepos[pack][version].push(tuple[0]);
+              packageToVersionToRepos[pack][version].push(tuple.name);
             } else {
               if (pack in packageToVersionToRepos) {
-                packageToVersionToRepos[pack][version] = [tuple[0]];
+                packageToVersionToRepos[pack][version] = [tuple.name];
               } else {
                 packageToVersionToRepos[pack] = {};
-                packageToVersionToRepos[pack][version] = [tuple[0]];
+                packageToVersionToRepos[pack][version] = [tuple.name];
               }
             }
           });
