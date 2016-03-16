@@ -4,6 +4,7 @@ var _ = require('lodash');
 var assert = require('assert');
 var async = require('async');
 var GitHubApi = require('github');
+var prettyjson = require('prettyjson');
 
 var gitHubUser = process.env.GITHUB_USER;
 var gitHubToken = process.env.GITHUB_TOKEN;
@@ -12,6 +13,8 @@ var gitHubOrg = process.env.GITHUB_ORG;
 assert(gitHubToken != undefined && gitHubToken != "", "pass the github token via GITHUB_TOKEN");
 assert(gitHubUser != undefined && gitHubUser != "", "pass the github user via GITHUB_USER");
 assert(gitHubOrg != undefined && gitHubOrg != "", "pass the github org via GITHUB_ORG");
+
+var packageName = process.argv[2];
 
 function makeRequests(gh, repos) {
   return _.map(repos, function(repo) {
@@ -101,7 +104,13 @@ github.repos.getFromOrg({
           });
         });
 
-        console.log(packageToVersionToRepos);
+        if (packageName) {
+          var small = {};
+          small[packageName] = packageToVersionToRepos[packageName];
+          console.log(prettyjson.render(small));
+        } else {
+          console.log(prettyjson.render(packageToVersionToRepos));
+        }
       }
     });
   }
