@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 var _ = require('lodash');
 var assert = require('assert');
 var async = require('async');
@@ -7,9 +9,9 @@ var gitHubUser = process.env.GITHUB_USER;
 var gitHubToken = process.env.GITHUB_TOKEN;
 var gitHubOrg = process.env.GITHUB_ORG;
 
-assert(gitHubToken != undefined && gitHubToken != "");
-assert(gitHubUser != undefined && gitHubUser != "");
-assert(gitHubOrg != undefined && gitHubOrg != "");
+assert(gitHubToken != undefined && gitHubToken != "", "pass the github token via GITHUB_TOKEN");
+assert(gitHubUser != undefined && gitHubUser != "", "pass the github user via GITHUB_USER");
+assert(gitHubOrg != undefined && gitHubOrg != "", "pass the github org via GITHUB_ORG");
 
 function makeRequests(gh, repos) {
   return _.map(repos, function(repo) {
