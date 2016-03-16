@@ -1,5 +1,9 @@
 # nodeVersionRepoSparkleMagic
-Sometime you have a lot of repositories so you need a way to manage all the versions....
+Lots of nodejs projects? Lots of shared deps? Lots of package.json's?
+
+Want a way to get all of them and get all of the various versions?
+
+Run this tool.
 
 How to run this thing:
 ======================
