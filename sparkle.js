@@ -6,13 +6,13 @@ var async = require('async');
 var GitHubApi = require('github');
 var prettyjson = require('prettyjson');
 
-var gitHubUser = process.env.GITHUB_USER;
-var gitHubToken = process.env.GITHUB_TOKEN;
 var gitHubOrg = process.env.GITHUB_ORG;
+var gitHubToken = process.env.GITHUB_TOKEN;
+var gitHubUser = process.env.GITHUB_USER;
 
+assert(gitHubOrg != undefined && gitHubOrg != "", "pass the github org via GITHUB_ORG");
 assert(gitHubToken != undefined && gitHubToken != "", "pass the github token via GITHUB_TOKEN");
 assert(gitHubUser != undefined && gitHubUser != "", "pass the github user via GITHUB_USER");
-assert(gitHubOrg != undefined && gitHubOrg != "", "pass the github org via GITHUB_ORG");
 
 var packageName = process.argv[2];
 
@@ -104,6 +104,13 @@ function aggregateRepos(repos) {
       _.forEach(repoPackageTuples, function(tuple) {
         _.forEach(_.keys(tuple.deps), function(pack) {
           var version = tuple.deps[pack];
+
+          if (version.match(/^[\^\~]/)) {
+            version = version.substring(1, version.length);
+          } else if (version.match(/^>=\s+/)) {
+            version = version.replace(/^>=\s+/, '');
+          }
+
           if (pack in packageToVersionToRepos && version in packageToVersionToRepos[pack]) {
             packageToVersionToRepos[pack][version].push(tuple.name);
           } else {
