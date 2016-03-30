@@ -53,65 +53,81 @@ var github = new GitHubApi({
   }
 });
 
-github.authenticate({
-  type: 'basic',
-  username: gitHubUser,
-  password: gitHubToken
-});
+function getRepos(page, repos, callback) {
+  github.authenticate({
+    type: 'basic',
+    username: gitHubUser,
+    password: gitHubToken
+  });
 
-github.repos.getFromOrg({
-  org: gitHubOrg,
-  per_page: 100
-}, function(err, response) {
-  if (err) {
-    console.log(err);
-  } else {
-    var repos = [];
-    _.forEach(response, function(repo) {
-      repos.push(repo.name);
-    });
+  github.repos.getFromOrg({
+    org: gitHubOrg,
+    per_page: 100,
+    page: page
+  }, function(err, response) {
+    if (err) {
+      console.log(err);
+    } else {
+      _.forEach(response, function(repo) {
+        repos.push(repo.name);
+      });
 
-    var requests = makeRequests(github, repos);
-    async.parallel(requests, function(err, responses) {
-      if (err) {
-        console.log(err);
+      if (response.meta.link.indexOf('next') >= 0) {
+        getRepos(page + 1, repos, function(rs) {
+          callback(rs);
+        });
       } else {
-        responses = _.compact(responses);
-        //get a list of tuples for repo name and it's set of dependencies
-        var repoPackageTuples = _.map(responses, function(response) {
-          return {
-            name: response.repoName,
-            deps: JSON.parse(new Buffer(response.content, 'base64').toString('utf-8')).dependencies
-          };
-        });
-
-        //we have a list of all the different repos and their associated versions
-        //let's make this readable.
-        var packageToVersionToRepos = {};
-        _.forEach(repoPackageTuples, function(tuple) {
-          _.forEach(_.keys(tuple.deps), function(pack) {
-            var version = tuple.deps[pack];
-            if (pack in packageToVersionToRepos && version in packageToVersionToRepos[pack]) {
-              packageToVersionToRepos[pack][version].push(tuple.name);
-            } else {
-              if (pack in packageToVersionToRepos) {
-                packageToVersionToRepos[pack][version] = [tuple.name];
-              } else {
-                packageToVersionToRepos[pack] = {};
-                packageToVersionToRepos[pack][version] = [tuple.name];
-              }
-            }
-          });
-        });
-
-        if (packageName) {
-          var small = {};
-          small[packageName] = packageToVersionToRepos[packageName];
-          console.log(prettyjson.render(small));
-        } else {
-          console.log(prettyjson.render(packageToVersionToRepos));
-        }
+        callback(repos);
       }
-    });
-  }
+    }
+  });
+}
+
+function aggregateRepos(repos) {
+  var requests = makeRequests(github, repos);
+  async.parallel(requests, function(err, responses) {
+    if (err) {
+      console.log(err);
+    } else {
+      responses = _.compact(responses);
+      //get a list of tuples for repo name and it's set of dependencies
+      var repoPackageTuples = _.map(responses, function(response) {
+        return {
+          name: response.repoName,
+          deps: JSON.parse(new Buffer(response.content, 'base64').toString('utf-8')).dependencies
+        };
+      });
+
+      //we have a list of all the different repos and their associated versions
+      //let's make this readable.
+      var packageToVersionToRepos = {};
+      _.forEach(repoPackageTuples, function(tuple) {
+        _.forEach(_.keys(tuple.deps), function(pack) {
+          var version = tuple.deps[pack];
+          if (pack in packageToVersionToRepos && version in packageToVersionToRepos[pack]) {
+            packageToVersionToRepos[pack][version].push(tuple.name);
+          } else {
+            if (pack in packageToVersionToRepos) {
+              packageToVersionToRepos[pack][version] = [tuple.name];
+            } else {
+              packageToVersionToRepos[pack] = {};
+              packageToVersionToRepos[pack][version] = [tuple.name];
+            }
+          }
+        });
+      });
+
+      if (packageName) {
+        var small = {};
+        small[packageName] = packageToVersionToRepos[packageName];
+        console.log(prettyjson.render(small));
+      } else {
+        console.log(prettyjson.render(packageToVersionToRepos));
+      }
+    }
+  });
+}
+
+getRepos(1, [], function(repos) {
+  aggregateRepos(repos);
 });
