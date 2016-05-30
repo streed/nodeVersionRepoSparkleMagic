@@ -29,3 +29,12 @@ async:
   1.2.1:
     - middle-child-project
 ```
+
+Want a http server cause you like clicking?
+===========================================
+
+```
+GITHUB_USER=<your username> GITHUB_TOKEN=<api token> GITHUB_ORG=<org to pull all the repos> sparkle -server
+```
+
+Then navigate to `localhost:8000` and click to your hearts content!
