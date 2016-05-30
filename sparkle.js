@@ -83,7 +83,7 @@ function getRepos(page, repos, callback) {
   });
 }
 
-function aggregateRepos(repos) {
+function aggregateRepos(repos, cb) {
   var requests = makeRequests(github, repos);
   async.parallel(requests, function(err, responses) {
     if (err) {
@@ -127,14 +127,69 @@ function aggregateRepos(repos) {
       if (packageName) {
         var small = {};
         small[packageName] = packageToVersionToRepos[packageName];
-        console.log(prettyjson.render(small));
+        cb(small);
       } else {
-        console.log(prettyjson.render(packageToVersionToRepos));
+        cb(packageToVersionToRepos);
       }
     }
   });
 }
 
-getRepos(1, [], function(repos) {
-  aggregateRepos(repos);
-});
+function htmlify(packages) {
+  var html = "<html><a href='/'>top</a><br /><ul>";
+  _.forEach(_.keys(packages), function(package) {
+    var versions = packages[package];
+    html += "<li><a href='/?" + package + "'>" + package + "</a>";
+    html += "<ul>";
+    _.forEach(_.keys(versions), function(version) {
+      html += "<li>" + version;
+      html += "<ul>";
+      _.forEach(versions[version], function(package) {
+        html += "<li>" + package + "</li>";
+      });
+      html += "</ul>";
+    });
+    html += "</ul>";
+  });
+
+  return html + "</ul></html>";
+}
+
+if (packageName === "-server") {
+  packageName = "";
+  //spin up a simple web server
+  var http = require('http');
+  var url = require('url');
+  var server = http.createServer(function(req, res) {
+    pacakgeName = "";
+    var requestOptions = url.parse(req.url);
+    if (requestOptions.query !== null) {
+      packageName = requestOptions.query;
+      getRepos(1, [], function(repos) {
+        aggregateRepos(repos, function(packages){
+          res.write(htmlify(packages));
+          res.end();
+        });
+      });
+    } else {
+      if (requestOptions.path === '/favicon.ico') {
+        res.end();
+      } else {
+        getRepos(1, [], function(repos) {
+          aggregateRepos(repos, function(packages) {
+            res.write(htmlify(packages));
+            res.end();
+          });
+        });
+      }
+    }
+  });
+
+  server.listen(8000);
+} else {
+  getRepos(1, [], function(repos) {
+    aggregateRepos(repos, function(res) {
+      console.log(prettyjson.render(res));
+    });
+  });
+}
