@@ -32,7 +32,22 @@ function makeRequests(gh, repos) {
       }, function(err, response) {
         if (err) {
           if (err.code == 404) {
-            cb();
+            gh.repos.getContent({
+              user: gitHubOrg,
+              repo: repo,
+              path: "/src/package.json"
+            }, function(err, response) {
+              if (err) {
+                if (err.code == 404) {
+                  cb();
+                }  else {
+                  cb(err);
+                }
+              } else {
+                response.repoName = repo;
+                cb(null, response);
+              }
+            });
           } else {
             cb(err);
           }
@@ -73,9 +88,11 @@ function getRepos(page, repos, callback) {
       });
 
       if (response.meta.link.indexOf('next') >= 0) {
-        getRepos(page + 1, repos, function(rs) {
-          callback(rs);
-        });
+        setTimeout(function() {
+          getRepos(page + 1, repos, function(rs) {
+            callback(rs);
+          });
+        }, 2000);
       } else {
         callback(repos);
       }
@@ -85,7 +102,7 @@ function getRepos(page, repos, callback) {
 
 function aggregateRepos(repos, cb) {
   var requests = makeRequests(github, repos);
-  async.parallel(requests, function(err, responses) {
+  async.parallelLimit(requests, 5, function(err, responses) {
     if (err) {
       console.log(err);
     } else {
